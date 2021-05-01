@@ -15,6 +15,7 @@ public class ParkCommandUtil {
         String[] split = multiCommand.split("\n");
         for (String value : split) {
             if (!value.equals("")) {
+                value = value.replace("\r","");
                 String[] s = value.split(" ");
                 ParkCommand parkCommand = null;
                 if (s.length == 4) {
