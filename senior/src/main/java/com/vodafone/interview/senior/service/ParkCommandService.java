@@ -5,7 +5,7 @@ import com.vodafone.interview.senior.dto.ParkCommand;
 import java.util.List;
 
 
-public interface ParkCommandProcessor {
+public interface ParkCommandService {
 
     String giveTicket(String command);
 

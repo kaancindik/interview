@@ -6,7 +6,7 @@ import com.vodafone.interview.senior.entity.CarEntity;
 import com.vodafone.interview.senior.enumeration.CommandTypeEnum;
 import com.vodafone.interview.senior.mapper.CarMapper;
 import com.vodafone.interview.senior.repository.CarRepository;
-import com.vodafone.interview.senior.service.ParkCommandProcessor;
+import com.vodafone.interview.senior.service.ParkCommandService;
 import com.vodafone.interview.senior.util.ParkCommandUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,7 +19,7 @@ import java.util.*;
 @Service
 @Transactional
 @RequiredArgsConstructor
-public class ParkCommandProcessorImpl implements ParkCommandProcessor {
+public class ParkCommandServiceImpl implements ParkCommandService {
 
     @Value("${park.capacity}")
     private int parkCapacity;
@@ -28,7 +28,7 @@ public class ParkCommandProcessorImpl implements ParkCommandProcessor {
     private final CarMapper carMapper;
 
     private final Map<Integer, Boolean> slotMap = new HashMap<>();
-    private final List<String> result = new ArrayList<>();
+    private StringBuilder stringBuilder = new StringBuilder();
     private final static String GARAGE_IS_FULL_STR = "Garage is full.";
 
     @PostConstruct
@@ -40,7 +40,7 @@ public class ParkCommandProcessorImpl implements ParkCommandProcessor {
 
     @Override
     public String giveTicket(String command) {
-        result.clear();
+        stringBuilder = new StringBuilder();
         List<ParkCommand> parkCommandList = ParkCommandUtil.generateParkCommandList(command);
         return processParkCommands(parkCommandList);
     }
@@ -54,9 +54,9 @@ public class ParkCommandProcessorImpl implements ParkCommandProcessor {
                     parkCommand.getCarDto().setParkSlotList(Arrays.asList(suitableParking));
                     carRepository.save(carMapper.dto2Entity(parkCommand.getCarDto()));
                     Arrays.asList(suitableParking).forEach(slotNumber -> slotMap.put(slotNumber, true));
-                    result.add("Allocated " + suitableParking.length + " slot.");
+                    stringBuilder.append("Allocated ").append(suitableParking.length).append(" slot.\n");
                 } else {
-                    result.add(GARAGE_IS_FULL_STR);
+                    stringBuilder.append(GARAGE_IS_FULL_STR).append("\n");
                 }
             } else if (parkCommand.getCommandType() == CommandTypeEnum.LEAVE) {
                 Optional<CarEntity> carEntityById = carRepository.getCarEntityById(parkCommand.getUniqueSequenceNumber());
@@ -64,16 +64,16 @@ public class ParkCommandProcessorImpl implements ParkCommandProcessor {
                     carRepository.delete(carEntityById.get());
                     leaveTheParkingSlot(carMapper.entity2Dto(carEntityById.get()));
                 } else {
-                    result.add("There is no vehicle!");
+                    stringBuilder.append("There is no vehicle!");
                 }
             } else if (parkCommand.getCommandType() == CommandTypeEnum.STATUS) {
                 List<CarEntity> listOfCarsInTheGarage = carRepository.findAll();
-                result.add("\n\nStatus:");
-                listOfCarsInTheGarage.forEach(car -> result.add(car.getLicensePlate() + " " + car.getCarColor() + " " + car.getParkSlotList().toString()));
+                stringBuilder.append("\n\nStatus:\n");
+                listOfCarsInTheGarage.forEach(car -> stringBuilder.append(car.getLicensePlate()).append(" ").append(car.getCarColor()).append(" ").append(car.getParkSlotList().toString()).append("\n"));
             }
 
         }
-        return result.toString();
+        return stringBuilder.toString();
     }
 
     private void leaveTheParkingSlot(CarDto carDto) {
